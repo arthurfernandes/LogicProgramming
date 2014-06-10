@@ -2,10 +2,15 @@ package br.ime.eb.logica.mancalagame;
 
 
 import java.awt.Font;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Handler;
 
 import org.lwjgl.input.Keyboard;
 import org.newdawn.slick.Color;
@@ -27,6 +32,8 @@ import alice.tuprolog.UnknownVarException;
 
 public class Play extends BasicGameState{
 	
+	public enum DifficultLevel {EASY,MEDIUM,HARD};
+	
 	private static int windowWidth;
 	private static int windowHeight;
 	private static int offsetMancala_X[] = new int[12];
@@ -46,7 +53,10 @@ public class Play extends BasicGameState{
 	
 	private static int messageBox_X;
 	private static int messageBox_Y;
+	private static DifficultLevel difficultLevel;
+	
 	private String messageBoxText = "";
+	private String messageNumberKalah = "";
 	
 	private int valuesMancala[] = new int[12];
 	private int valuesKalah[] = new int[2];
@@ -62,6 +72,7 @@ public class Play extends BasicGameState{
 	private TextField textField;
 	
 	private Color fontColor;
+	private Color computerFontColor;
 	private TrueTypeFont awtMancalaFont;
 	private TrueTypeFont awtKalahFont;
 	private TrueTypeFont awtMessageFont;
@@ -72,9 +83,68 @@ public class Play extends BasicGameState{
 	private ArrayList posicaoComputador;
 	private int computadorJogadasRestantes = 0;
 	private boolean computadorJogaNovamente = false;
+	private boolean isGameOver = false;
+	private boolean computerFreed = false;
+	private int computerIndex;
+	JLayer backgroundSong = null;
+	
 	PrologBind prologBind = null;
 	
 	public Play(int state){
+		
+	}
+	
+	private int getRelativeRatioWidth(int AbsoluteWidth){
+		return (int)(windowWidth*((float) AbsoluteWidth/1005));
+	}
+	
+	private int getRelativeRatioHeight(int AbsoluteHeight){
+		return (int)(windowHeight*((float) AbsoluteHeight/487));
+		
+	}
+	
+	public void enter(GameContainer container,StateBasedGame sgb){
+		
+		if(backgroundSong!=null)
+			backgroundSong.stopSong();
+		backgroundSong = new JLayer();
+		backgroundSong.playSong("res/03test.mp3");
+		try {
+			int dificuldade = 1;
+			switch(this.difficultLevel){
+			case EASY:
+				dificuldade = 1;
+				break;
+			case MEDIUM:
+				dificuldade = 2;
+				break;
+			case HARD:
+				dificuldade = 3;
+				break;
+				default:
+					
+			}
+			prologBind = new PrologBind(dificuldade);
+		} catch ( InvalidTheoryException
+				| NoSolutionException | IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		messageBoxText = "Novo Jogo!";
+		isGameOver = false;
+		for(int i = 0;i<valuesMancala.length;i++)
+			valuesMancala[i] = 6;
+		
+		this.computadorJogaNovamente = false;
+		this.computerFreed = false;
+		this.isAllowedToPlay = true;
+		valuesKalah[0] = 0;
+		valuesKalah[1] = 0;
+	
+	}
+	
+	public void init(GameContainer gc, StateBasedGame sbg) throws SlickException{
+		
 		windowWidth = MancalaGame.getWindowWidth();
 		windowHeight = MancalaGame.getWindowHeight();
 		ballWidth = getRelativeRatioWidth(15);
@@ -106,41 +176,20 @@ public class Play extends BasicGameState{
 		for(int i = 0;i<valuesMancala.length;i++)
 			valuesMancala[i] = 6;
 		
-	}
-	
-	private int getRelativeRatioWidth(int AbsoluteWidth){
-		return (int)(windowWidth*((float) AbsoluteWidth/1005));
-	}
-	
-	private int getRelativeRatioHeight(int AbsoluteHeight){
-		return (int)(windowHeight*((float) AbsoluteHeight/487));
-		
-	}
-	
-	public void enter(GameContainer container,StateBasedGame sgb){
-		
-	
-	}
-	
-	public void init(GameContainer gc, StateBasedGame sbg) throws SlickException{
-		try {
-			prologBind = new PrologBind();
-		} catch (InvalidTheoryException
-				| NoSolutionException | IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		valuesKalah[0] = 0;
+		valuesKalah[1] = 0;
 		
 		action = Action.NONE;
 		isAllowedToPlay = true;
 		fontColor = new Color(0.83f,0.83f,0.83f,0.95f);
-		awtMancalaFont = new TrueTypeFont(new Font("Herculanum", Font.BOLD, 19),true);
+		computerFontColor = new Color(0.92f,0.30f,0.32f,0.95f);
+		awtMancalaFont = new TrueTypeFont(new Font("Herculanum", Font.BOLD, (int)((float)19/1300*MancalaGame.getWindowWidth())),true);
 		
-		awtKalahFont = new TrueTypeFont( new Font("Herculanum",Font.BOLD,25),true);
-		awtMessageFont = new TrueTypeFont(new Font("Herculanum",Font.BOLD,24),true);
+		awtKalahFont = new TrueTypeFont( new Font("Herculanum",Font.BOLD,(int)((float)25/1300*MancalaGame.getWindowWidth())),true);
+		awtMessageFont = new TrueTypeFont(new Font("Herculanum",Font.BOLD,(int)((float)24/1300*MancalaGame.getWindowWidth())),true);
 		
 		ball = new Ellipse(0,0,ballWidth/2,ballWidth/2);
-		background = new Image("res/background1.png");
+		background = new Image("res/backgroundnovo.png");
 		background = background.getScaledCopy(windowWidth,windowHeight);
 		/*this.textField = new TextField(gc, this.textMancalaFont, 100, 100, 100, 100);
 	    this.textField.setTextColor(Color.white);
@@ -190,6 +239,8 @@ public class Play extends BasicGameState{
 		}
 		g.setFont(awtMessageFont);
 		g.setColor(fontColor);
+		if(!this.isAllowedToPlay)
+			g.setColor(computerFontColor);
 		g.drawString(this.messageBoxText,this.messageBox_X,this.messageBox_Y);
 		
 	}
@@ -202,6 +253,7 @@ public class Play extends BasicGameState{
 				break;
 			case BACK:
 				action = Action.NONE;
+				backgroundSong.stopSong();
 				sbg.enterState(MancalaGame.menu);
 				break;
 			case PLAYER:
@@ -209,7 +261,81 @@ public class Play extends BasicGameState{
 			default:
 				
 		}
+		
+		if(this.computadorJogaNovamente && this.computerFreed){
+			System.out.println("AQUI");
+			Timer timer = new Timer();
+			computerFreed = false;
+			timer.schedule(new TimerTask(){
+				
+				@Override
+				public void run() {
+					
+					// TODO Auto-generated method stub
+					posicaoComputador = (ArrayList) listaDePosicoes.get(computerIndex);
+					for(int j = 0;j<6;j++)
+						valuesMancala[5-j] = (int) posicaoComputador.get(j);
+					
+					valuesKalah[0] = (int)posicaoComputador.get(6);
+					
+					for(int j = 7;j<13;j++)
+						valuesMancala[j-1] = (int) posicaoComputador.get(j);
+					
+					valuesKalah[1] = (int) posicaoComputador.get(13);
+					
+					
+					computerIndex++;
+					computadorJogadasRestantes--;
+					if(computadorJogadasRestantes==0){
+						computadorJogaNovamente=false;
+						messageBoxText = "Sua vez Jogador!";
+						try {
+							prologBind.nextPlayer();
+						} catch (NoSolutionException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+						isAllowedToPlay = true;
+						
+					}
+					else{
+						messageBoxText = "Joguei de novo! ";
+					}
+					
+					if(computadorJogadasRestantes == 0){
+					try {
+						int gameOver = prologBind.gameOver();
+						if(gameOver>0){
+							isGameOver = true;
+							switch(gameOver){
+							case 1:
+								messageBoxText = "Parabéns você ganhou!";
+								break;
+							case 2:
+								messageBoxText = "Que pena eu ganhei...";
+								break;
+							case 0:
+								messageBoxText = "Empatamos... Jogue Novamente!";
+								break;
+							}
+						}
+						else{
+							isGameOver = false;
+						}
+					} catch (NoSolutionException e2) {
+						// TODO Auto-generated catch block
+						e2.printStackTrace();
+					}
+					}
+					
+						computerFreed = true;
+				};
+			}, 3000);
+			
+		}
 	}
+	
+	
 	
 	public void keyPressed(int key,char c){
 		switch(key){
@@ -242,12 +368,14 @@ public class Play extends BasicGameState{
 		int posX2 = posX + 15;
 		int posY2 = posY + 15;
 		for(int i = 6;i<this.offsetMancala_X.length;i++){
+			
 			int offset_X = offsetMancala_X[i]-this.getRelativeRatioWidth(21);
 			int offset_Y = offsetMancala_Y[i]-this.getRelativeRatioHeight(27);
 			if(posX2>offset_X && posX2<(offset_X+lengthMancala_X) &&
 					(posY2>offset_Y && posY2<(offset_Y+lengthMancala_Y))){
-				if(!isAllowedToPlay){
-					this.messageBoxText = "Espere sua Vez!";
+				if(!isAllowedToPlay || isGameOver){
+					if(!isGameOver)
+						this.messageBoxText = "Espere sua Vez!";
 				}
 				else{
 					if(valuesMancala[i]==0){
@@ -255,11 +383,37 @@ public class Play extends BasicGameState{
 						break;
 					}
 					else{
+						
 
+						try {
+							int gameOver = prologBind.gameOver();
+							if(gameOver>0){
+								isGameOver = true;
+								switch(gameOver){
+								case 1:
+									this.messageBoxText = "Parabéns você ganhou!";
+									break;
+								case 2:
+									this.messageBoxText = "Que pena eu ganhei...";
+									break;
+								case 0:
+									this.messageBoxText = "Empatamos... Jogue Novamente!";
+									
+								}
+							}
+							else{
+								isGameOver = false;
+							}
+						} catch (NoSolutionException e2) {
+							// TODO Auto-generated catch block
+							e2.printStackTrace();
+						}
+						
 						ArrayList<Integer> moves = new ArrayList<>();
 			            moves.add(i-5);
 						try {
 							listaDePosicoes = prologBind.jogaPlayer(moves);
+							
 						} catch (NoSolutionException | UnknownVarException e) {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
@@ -280,19 +434,46 @@ public class Play extends BasicGameState{
 						
 						this.valuesKalah[1] = (int) posicao.get(13);
 						
-						if((valuesKalah[1]-kalahJogadorAntigo)> (valuesMancala[5]-proximoMancala)){
+						
+						if(((valuesKalah[1]-kalahJogadorAntigo)- (valuesMancala[5]-proximoMancala) ) == 1 && (isGameOver == false)){
 							this.messageBoxText = "Que sorte! Jogue Novamente.";
 							
 						}
 						else{
+							this.isAllowedToPlay = false;
+							if(isGameOver)
+								return;
 							try {
-								this.isAllowedToPlay = false;
+								
 								prologBind.nextPlayer();
 							} catch (NoSolutionException e1) {
 								// TODO Auto-generated catch block
 								e1.printStackTrace();
 							}
-							this.messageBoxText = "Agora é a vez do Computador.";
+							this.messageBoxText = "Agora é a minha vez!";
+							try {
+								int gameOver = prologBind.gameOver();
+								if(gameOver>0){
+									isGameOver = true;
+									switch(gameOver){
+									case 1:
+										messageBoxText = "Parabéns você ganhou!";
+										break;
+									case 2:
+										messageBoxText = "Que pena eu ganhei...";
+										break;
+									case 0:
+										messageBoxText = "Empatamos... Jogue Novamente!";
+										break;
+									}
+								}
+								else{
+									isGameOver = false;
+								}
+							} catch (NoSolutionException e2) {
+								// TODO Auto-generated catch block
+								e2.printStackTrace();
+							}
 							try {
 								listaDePosicoes = prologBind.jogaComputer();
 							} catch (NoSolutionException e1) {
@@ -300,61 +481,83 @@ public class Play extends BasicGameState{
 								e1.printStackTrace();
 							}
 						
-								Timer timer = new Timer();
+								
 								this.computadorJogadasRestantes = listaDePosicoes.size();
-								if(this.computadorJogadasRestantes>1)
-									this.computadorJogaNovamente = true;
-								else 
-									this.computadorJogaNovamente = false;
-								System.out.println("NUMERO JOGADAS COMPUTADOR:"+listaDePosicoes.size());
-								for(int k = 0;k<listaDePosicoes.size();k++){
-									posicaoComputador = (ArrayList) listaDePosicoes.get(k);
-									
-									timer.schedule(new TimerTask(){
-										public void run(){
-											
+								this.computerIndex=0;
+								
+								Timer timer = new Timer();
+								timer.schedule(new TimerTask(){
+
+									@Override
+									public void run() {
+										computerFreed = false;
+										// TODO Auto-generated method stub
+										posicaoComputador = (ArrayList) listaDePosicoes.get(computerIndex);
+										if(computadorJogadasRestantes>1)
+											computadorJogaNovamente = true;
+										else 
+											computadorJogaNovamente = false;
+										
+										System.out.println("NUMERO JOGADAS COMPUTADOR:"+computadorJogadasRestantes);
+										
+										for(int j = 0;j<6;j++)
+											valuesMancala[5-j] = (int) posicaoComputador.get(j);
+										
+										valuesKalah[0] = (int)posicaoComputador.get(6);
+										
+										for(int j = 7;j<13;j++)
+											valuesMancala[j-1] = (int) posicaoComputador.get(j);
+										
+										valuesKalah[1] = (int) posicaoComputador.get(13);
+										
+										computadorJogadasRestantes--;
+										System.out.println("Computador Jogou:"+computerIndex);
+										computerIndex++;
+										if(computadorJogadasRestantes == 0){
+										try {
+											int gameOver = prologBind.gameOver();
+											if(gameOver>0){
+												isGameOver = true;
+												switch(gameOver){
+												case 1:
+													messageBoxText = "Parabéns você ganhou!";
+													break;
+												case 2:
+													messageBoxText = "Que pena eu ganhei...";
+													break;
+												case 0:
+													messageBoxText = "Empatamos... Jogue Novamente!";
+													break;
+												}
+											}
+											else{
+												isGameOver = false;
+											}
+										} catch (NoSolutionException e2) {
+											// TODO Auto-generated catch block
+											e2.printStackTrace();
+										}
+										}
+										if(computadorJogadasRestantes==0 && !isGameOver){
+											messageBoxText = "Sua vez Jogador!";
 											try {
-												listaDePosicoes = prologBind.jogaComputer();
+												prologBind.nextPlayer();
 											} catch (NoSolutionException e) {
 												// TODO Auto-generated catch block
 												e.printStackTrace();
 											}
-											
-											for(int j = 0;j<6;j++)
-												valuesMancala[5-j] = (int) posicaoComputador.get(j);
-											
-											valuesKalah[0] = (int)posicaoComputador.get(6);
-											
-											for(int j = 7;j<13;j++)
-												valuesMancala[j-1] = (int) posicaoComputador.get(j);
-											
-											valuesKalah[1] = (int) posicaoComputador.get(13);
-											
-											computadorJogadasRestantes--;
-											
-											if(computadorJogadasRestantes==0){
-												messageBoxText = "Sua vez Jogador!";
-												isAllowedToPlay = true;
-												try {
-													prologBind.nextPlayer();
-												} catch (NoSolutionException e) {
-													// TODO Auto-generated catch block
-													e.printStackTrace();
-												}
-											}
-											if(computadorJogadasRestantes>0){
-												messageBoxText = "Computador joga novamente";
-											}
-											
-											
-											
+											isAllowedToPlay = true;
 										}
-									}, 3000+k*1000);
+										
+										
+											computerFreed = true;
+									};
+								}
+									
+								, 2000);
+								
 									
 								}
-								
-							}
-							
 							
 						}
 					}
@@ -363,8 +566,13 @@ public class Play extends BasicGameState{
 		}
 		
 		
+	public static void setDifficultLevel(DifficultLevel difficultLevel){
+		Play.difficultLevel = difficultLevel;
+	}
 	
-	
+	public static DifficultLevel getDifficultLevel(){
+		return Play.difficultLevel;
+	}
 	
 	public int getID(){
 		return 1;

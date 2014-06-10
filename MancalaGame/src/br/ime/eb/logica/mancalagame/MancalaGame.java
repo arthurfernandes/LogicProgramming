@@ -4,17 +4,23 @@ import br.ime.eb.logica.mancalagame.Menu;
 
 import org.newdawn.slick.AppGameContainer;
 import org.newdawn.slick.GameContainer;
+import org.newdawn.slick.Image;
 import org.newdawn.slick.SlickException;
 import org.newdawn.slick.state.GameState;
 import org.newdawn.slick.state.StateBasedGame;
 
 public class MancalaGame extends StateBasedGame{
 
-	public static final String gamename = "Mancala";
-	private static final int windowWidth = 1200;
-	private static final int windowHeight = windowWidth*487/1005;
+	public static final String gamename = "Mankala";
+	private static int windowWidth = 1400;
+	private static int windowHeight = windowWidth*487/1005;
 	public static final int menu = 0;
 	public static final int play = 1;
+	
+	public static void setWindowWidth(int windowWidth){
+		MancalaGame.windowWidth = windowWidth;
+		windowHeight = windowWidth*487/1005;
+	}
 	
 	public MancalaGame(String gamename){
 		super(gamename);
@@ -41,8 +47,9 @@ public class MancalaGame extends StateBasedGame{
 	public static void main(String[] args) {
 		AppGameContainer appgc;
 		try{
-			appgc = new AppGameContainer(new MancalaGame("Mancala"));
+			appgc = new AppGameContainer(new MancalaGame("Mankala"));
 			appgc.setShowFPS(false);
+			MancalaGame.setWindowWidth(appgc.getScreenWidth()-20);
 			appgc.setDisplayMode(MancalaGame.getWindowWidth(), MancalaGame.getWindowHeight(), false);
 			appgc.start();
 		}catch(SlickException e){

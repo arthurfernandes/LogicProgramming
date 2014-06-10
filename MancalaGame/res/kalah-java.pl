@@ -1,7 +1,7 @@
 % Autor:
 % Data: 01/06/2014
 
- /* Play framework  */
+ /* Para testes no Swi-Prolog */
 
      play(Game) :-
         initialize(Game,Position,Player),
@@ -18,7 +18,7 @@
         !,
         play(Position1,Player1,Result).
 
- /* Choosing a move by minimax with alpha-beta cut-off  */
+ /* Escolher um movimento do computador usando minimax e poda alfa beta  */
 
      choose_move(Position,computer,Move) :-
         lookahead(Depth),
@@ -68,7 +68,7 @@
         distribute_stones(Stones,M,Board,Board1),
         move(Board1,Ms).
 
-/*  Executing a move  */
+/*  Executando um movimento : colheita > semeadura  */
 
      move([N|Ns],Board,FinalBoard) :-
        stones_in_hole(N,Board,Stones),
@@ -77,17 +77,13 @@
      move([],Board1,Board2) :-
         swap(Board1,Board2).
 
-/*  distribute_stones(Stones,Hole,Board,Board1) :-
-        Board1 is the result of distributing the number of stones,
-        Stones, from Hole from the current Board.
-        It consists of two stages: distributing the stones in the player's
-        holes, distribute_my_holes, and distributing the stones in
-        the opponent's holes, distribute_your_holes.
-*/
+/* Semeadura */
 
 distribute_stones(Stones,Hole,Board,FinalBoard) :-
    distribute_my_holes(Stones,Hole,Board,Board1,Stones1),
    distribute_your_holes(Stones1,Board1,Board2,FinalBoard).
+
+/* Para distribuir no mankala e kalah do jogador da vez */
 
 distribute_my_holes(Stones,N,board(Hs,K,Ys,L),board(Hs1,K1,Ys,L),Stones1) :-
   Stones > 7-N, !,
@@ -98,6 +94,8 @@ distribute_my_holes(Stones,N,board(Hs,K,Ys,L),Board,0) :-
   check_capture(N,Stones,Hs1,Hs2,Ys,Ys1,Pieces),
   update_kalah(Pieces,N,Stones,K,K1),
   check_if_finished(board(Hs2,K1,Ys1,L),Board).
+
+/* Verificar se houve uma captura */
 
 check_capture(N,Stones,Hs,Hs1,Ys,Ys1,Pieces) :-
   FinishingHole is N+Stones,
@@ -116,9 +114,13 @@ check_if_finished(board(Hs,K,Ys,L),board(Ys,K1,Ys,L)) :-
   zero(Ys), !, sumlist(Hs,HsSum), K1 is K+HsSum.
 check_if_finished(Board,Board) :- !.
 
+
+
 update_kalah(0,Stones,N,K,K) :- Stones < 7-N, !.
 update_kalah(0,Stones,N,K,K1) :- Stones =:= 7-N, !, K1 is K+1.
 update_kalah(Pieces,Stones,N,K,K1) :- Pieces > 0, !, K1 is K+Pieces.
+
+/* Distribuir na Mankala do oponenete */
 
 distribute_your_holes(0,Board,Board,Board) :- !.
 distribute_your_holes(Stones,board(Hs,K,Ys,L),board(Hs,K,Ys1,L),board(Hs,K,Ys1,L)) :-
@@ -133,7 +135,7 @@ distribute_your_holes(Stones,board(Hs,K,Ys,L),board(Hs,K,Ys1,L),Board) :-
 distribute_your_holes(Stones,board(Hs,K,Ys,L),board(Hs,K,Hs,L1),board(Hs,K,Hs,L1)) :-
   zero(Hs), !, sumlist(Ys,YsSum), L1 is Stones+YsSum+L.
 
-/*  Lower level stone distribution    */
+/* Predicados auxiliares para Colheita e Semeadura  */
 
 pick_up_and_distribute(0,N,Hs,Hs1) :-
   !, distribute(N,Hs,Hs1).
@@ -147,11 +149,11 @@ pick_up_and_distribute(K,N,[H|Hs],[H|Hs1]) :-
         N > 0, !, N1 is N-1, H1 is H+1, distribute(N1,Hs,Hs1).
      distribute(N,[],[]) :- !.
 
-/*   Evaluation function        */
+/*   Verificar o valor do movimento para usar no minimax com poda alfa beta, Seu Kalah menos o Kalah do oponente       */
 
      value(board(H,K,Y,L),Value) :- Value is K-L.
 
-/*  Testing for the end of the game     */
+/*  Verificando se o jogo terminou    */
 
      game_over(board(0,N,0,N),Player,draw) :-
         pieces(K), N =:= 6*K, !.
@@ -160,11 +162,13 @@ pick_up_and_distribute(K,N,[H|Hs],[H|Hs1]) :-
      game_over(board(H,K,Y,L),Player,Opponent) :-
         pieces(N), L > 6*N, next_player(Player,Opponent).
 
-     announce(opponent) :- writeln(['You won! Congratulations.']).
-     announce(computer) :- writeln(['I won.']).
-     announce(draw) :- writeln(['The game is a draw.']).
 
-/*  Miscellaneous game utilities        */
+/* Usado para testar no Swi-Prolog */
+     announce(opponent) :- writeln(['Voce venceu! Parabens!']).
+     announce(computer) :- writeln(['Eu venci...']).
+     announce(draw) :- writeln(['O jogo empatou!']).
+
+/*  Funcoes auxiliares para implementar o jogo       */
 
         nth_member(N,[H|Hs],K) :-
             N > 1, !, N1 is N - 1, nth_member(N1,Hs,K).
@@ -207,12 +211,11 @@ n_substitute(N,[X|Xs],Y,[X|Xs1]) :-
 
      non_zero(Hs) :- Hs \== [0,0,0,0,0,0].
 
-/*  Initializing        */
+/*  Inicializacao da inteligencia (profundidade), do numero de pecas do tabuleiro, e da quantidade inicial de pecas nos Kalahs e Mankalas       */
 
-     lookahead(2).
+     lookahead(3).
      initialize(kalah,board([N,N,N,N,N,N],0,[N,N,N,N,N,N],0),opponent) :-
         pieces(N).
 
      pieces(6).
 
-%  Program 21.3  A complete program for playing Kalah

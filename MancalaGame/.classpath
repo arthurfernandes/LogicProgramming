@@ -12,8 +12,8 @@
 			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="MancalaGame/lib/natives/macosx"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="/Users/arthurfernandes/Documents/temp/Java/MancalaGame/lib/jars/2p.jar"/>
-	<classpathentry kind="lib" path="/Users/arthurfernandes/Documents/temp/Java/MancalaGame/lib/jars/tuprolog.jar"/>
-	<classpathentry kind="lib" path="/Users/arthurfernandes/Documents/temp/Java/MancalaGame/lib/jars/JLayer1.0.1/jl1.0.1.jar"/>
+	<classpathentry kind="lib" path="lib/jars/JLayer1.0.1/jl1.0.1.jar"/>
+	<classpathentry kind="lib" path="lib/jars/2p.jar"/>
+	<classpathentry kind="lib" path="lib/jars/tuprolog.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
